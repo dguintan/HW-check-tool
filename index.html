@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>作業登記</title>
+    <style>
+        body {
+            background-color: black;
+            color: yellow;
+            font-family: Arial, sans-serif;
+        }
+        .task-button { 
+            background-color: black; 
+            color: yellow; 
+            font-weight: bold; 
+        }
+        .task-button.selected { 
+            background-color: lightgreen; 
+        }
+        .student-button { 
+            background-color: black; 
+            color: yellow; 
+        }
+        .student-button.submitted { 
+            background-color: lightgreen; 
+        }
+        .student-button.not-submitted { 
+            background-color: red; 
+        }
+        .disabled { 
+            pointer-events: none; 
+            opacity: 0.5; 
+        }
+        .hidden { 
+            display: none; 
+        }
+        .centered { 
+            text-align: center; 
+        }
+        #header { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+        }
+        #header h1 { 
+            margin: 0; 
+        }
+        #header .date { 
+            margin-left: 20px; 
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script>
+        let taskStates = {
+            "生字1": false, "生字2": false, "圈詞": false, "國習": false,
+            "國練": false, "國卷": false, "直行簿": false, "線上國": false,
+            "數習": false, "數作": false, "數課": false, "數卷": false,
+            "線上數": false, "其他國": false, "其他數": false
+        };
+
+        function toggleTask(button, task) {
+            button.classList.toggle('selected');
+            taskStates[task] = !taskStates[task];
+            toggleStudentButtons(task, taskStates[task]);
+        }
+
+        function toggleStudentButtons(task, isEnabled) {
+            const taskContainer = document.getElementById(`${task}-container`);
+            const buttons = taskContainer.querySelectorAll('.student-button');
+            if (isEnabled) {
+                taskContainer.classList.remove('hidden');
+                buttons.forEach(button => {
+                    button.classList.remove('disabled');
+                });
+            } else {
+                taskContainer.classList.add('hidden');
+                buttons.forEach(button => {
+                    button.classList.add('disabled');
+                    button.classList.remove('submitted', 'not-submitted');
+                });
+            }
+        }
+
+        function submitHomework(button, task) {
+            if (button.classList.contains('disabled')) return;
+            if (button.classList.contains('submitted')) {
+                button.classList.remove('submitted');
+                button.classList.add('not-submitted');
+            } else if (button.classList.contains('not-submitted')) {
+                button.classList.remove('not-submitted');
+                button.classList.add('submitted');
+            } else {
+                button.classList.add('submitted');
+            }
+        }
+
+        function downloadData() {
+            let workbook = XLSX.utils.book_new();
+            let data = [["座號", "生字1", "生字2", "圈詞", "國習", "國練", "國卷", "直行簿", "線上國", "數習", "數作", "數課", "數卷", "線上數", "其他國", "其他數"]];
+            for (let i = 1; i <= 31; i++) {
+                let row = [i];
+                ["生字1", "生字2", "圈詞", "國習", "國練", "國卷", "直行簿", "線上國", "數習", "數作", "數課", "數卷", "線上數", "其他國", "其他數"].forEach(task => {
+                    const button = document.querySelector(`.student-button.${task}[data-student="${i}"]`);
+                    if (button.classList.contains('submitted')) {
+                        row.push("已交");
+                    } else if (button.classList.contains('not-submitted')) {
+                        row.push("未交");
+                    } else {
+                        row.push("");
+                    }
+                });
+                data.push(row);
+            }
+            let ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(workbook, ws, "作業數據");
+
+            const date = new Date();
+            const formattedDate = `${date.getFullYear()}${('0' + (date.getMonth() + 1)).slice(-2)}${('0' + date.getDate()).slice(-2)}`;
+            XLSX.writeFile(workbook, `homework_data_${formattedDate}.xlsx`);
+        }
+
+        function initializeButtons() {
+            document.querySelectorAll('.task-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const task = this.getAttribute('data-task');
+                    toggleTask(this, task);
+                });
+            });
+            document.querySelectorAll('.student-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const task = this.getAttribute('data-task');
+                    submitHomework(this, task);
+                });
+            });
+            document.getElementById('download-btn').addEventListener('click', downloadData);
+
+            const date = new Date();
+            const formattedDate = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+            document.getElementById('current-date').textContent = formattedDate;
+        }
+
+        window.onload = initializeButtons;
+    </script>
+</head>
+<body>
+    <div id="header">
+        <h1>作業登記</h1>
+        <div class="date" id="current-date"></div>
+    </div>
+    <div id="task-selection" class="centered">
+        <h2>選擇需交作業</h2>
+        <button class="task-button" data-task="生字1">生字1</button>
+        <button class="task-button" data-task="生字2">生字2</button>
+        <button class="task-button" data-task="圈詞">圈詞</button>
+        <button class="task-button" data-task="國習">國習</button>
+        <button class="task-button" data-task="國練">國練</button>
+        <button class="task-button" data-task="國卷">國卷</button>
+        <button class="task-button" data-task="直行簿">直行簿</button>
+        <button class="task-button" data-task="線上國">線上國</button>
+        <button class="task-button" data-task="數習">數習</button>
+        <button class="task-button" data-task="數作">數作</button>
+        <button class="task-button" data-task="數課">數課</button>
+        <button class="task-button" data-task="數卷">數卷</button>
+        <button class="task-button" data-task="線上數">線上數</button>
+        <button class="task-button" data-task="其他國">其他國</button>
+        <button class="task-button" data-task="其他數">其他數</button>
+    </div>
+    <div id="student-submission">
+        <div id="生字1-container" class="hidden">
+            <h3>生字1</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 生字1 disabled" data-task="生字1" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="生字2-container" class="hidden">
+            <h3>生字2</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 生字2 disabled" data-task="生字2" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="圈詞-container" class="hidden">
+            <h3>圈詞</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 圈詞 disabled" data-task="圈詞" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="國習-container" class="hidden">
+            <h3>國習</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 國習 disabled" data-task="國習" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="國練-container" class="hidden">
+            <h3>國練</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 國練 disabled" data-task="國練" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="國卷-container" class="hidden">
+            <h3>國卷</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 國卷 disabled" data-task="國卷" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="直行簿-container" class="hidden">
+            <h3>直行簿</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 直行簿 disabled" data-task="直行簿" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="線上國-container" class="hidden">
+            <h3>線上國</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 線上國 disabled" data-task="線上國" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="數習-container" class="hidden">
+            <h3>數習</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 數習 disabled" data-task="數習" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="數作-container" class="hidden">
+            <h3>數作</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 數作 disabled" data-task="數作" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="數課-container" class="hidden">
+            <h3>數課</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 數課 disabled" data-task="數課" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="數卷-container" class="hidden">
+            <h3>數卷</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 數卷 disabled" data-task="數卷" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="線上數-container" class="hidden">
+            <h3>線上數</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 線上數 disabled" data-task="線上數" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="其他國-container" class="hidden">
+            <h3>其他國</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 其他國 disabled" data-task="其他國" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+        <div id="其他數-container" class="hidden">
+            <h3>其他數</h3>
+            <div class="student-buttons">
+                <!-- 生成1到31號的按鈕 -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write(`<button class="student-button 其他數 disabled" data-task="其他數" data-student="${i}">${i}</button>`);
+                    }
+                </script>
+            </div>
+        </div>
+    </div>
+    <button id="download-btn">下載數據</button>
+</body>
+</html>
